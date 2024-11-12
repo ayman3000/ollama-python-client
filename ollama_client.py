@@ -104,7 +104,7 @@ def load_conversation_history(session_id):
     conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     c.execute('''
-        SELECT user_input, bot_response
+        SELECT user_input, bot_response, model_name
         FROM conversations
         WHERE session_id = ?
         ORDER BY timestamp DESC
@@ -130,20 +130,25 @@ else:
 
 # Section for creating a new session
 st.sidebar.subheader('Create New Session')
-new_session_name = st.sidebar.text_input("Enter new session name:")
-if st.sidebar.button("Create Session"):
-    if new_session_name:
+
+# Function to add a new session immediately after pressing Enter
+def add_new_session():
+    name = st.session_state.session_name
+    if name:
         # Create a new session and store it in the session state
-        session_id = create_new_session(new_session_name)
+        session_id = create_new_session(name)
         st.session_state['current_session_id'] = session_id
-        st.session_state['current_session_name'] = new_session_name
+        st.session_state['current_session_name'] = name
 
         # Add the new session to the session list in memory without refreshing
         if 'session_list' not in st.session_state:
             st.session_state['session_list'] = []
-        st.session_state['session_list'].insert(0, (session_id, new_session_name))
+        st.session_state['session_list'].insert(0, (session_id, name))
 
-# Sidebar list for existing sessions
+        # Clear the new session name input
+        st.session_state['new_session_name'] = ""
+new_session_name = st.sidebar.text_input("Enter new session name:", key='session_name', on_change= add_new_session)
+
 # Sidebar list for existing sessions
 st.sidebar.subheader('Session History')
 if 'session_list' not in st.session_state:
@@ -168,13 +173,14 @@ current_session_name = st.session_state.get('current_session_name', 'Unnamed Ses
 
 # Main chat interface
 st.subheader(f'Chat - {current_session_name}')
-user_input = st.text_input('You:', '')
+user_input = st.text_area('You:', '', height=100)
 
 if st.button('Send'):
     if user_input and current_session_id:
         bot_response = generate_response(selected_model, user_input)
+
         if bot_response:
-            st.text_area('Bot:', bot_response, height=200)
+            st.text_area(f'{selected_model}:', bot_response, height=200)
             save_conversation(current_session_id, selected_model, user_input, bot_response)
     else:
         st.warning('Please create or select a session.')
@@ -183,12 +189,12 @@ if st.button('Send'):
 if current_session_id:
     st.subheader(f'Conversation History - {current_session_name}')
     full_conversation = load_conversation_history(current_session_id)
-    for user_msg, bot_msg in full_conversation:
+    for user_msg, bot_msg, model_name in full_conversation:
         st.markdown(
-            f"<div style='text-align: right; background-color: #007bff; color: white; padding: 10px; border-radius: 10px; margin: 5px 0;'><strong>You:</strong> {user_msg}</div>",
+            f"<div style='text-align: right; background-color: #0056b3; color: white; padding: 10px; border-radius: 10px; margin: 5px 0;font-size:18px'><strong>You:</strong> {user_msg}</div>",
             unsafe_allow_html=True)
         st.markdown(
-            f"<div style='text-align: left; background-color: #444444; color: white; padding: 10px; border-radius: 10px; margin: 5px 0;'><strong>Bot:</strong> {bot_msg}</div>",
+            f"<div style='text-align: left; background-color: #333333; color: white; padding: 10px; border-radius: 10px; margin: 5px 0;font-size:18px'><strong style='color:#00b3b3;font-size:20px'> {model_name}:</strong> <pre style='white-space: pre-wrap; word-wrap: break-word; font-size:16px; background-color: #2e2e2e; color: #d4d4d4; padding: 10px; border-radius: 5px;'>{bot_msg}</pre></div>",
             unsafe_allow_html=True)
 
 # Custom CSS for font sizes
@@ -209,7 +215,10 @@ st.markdown("""
     }
     /* Input box and button text */
     input, button {
-        font-size: 14px !important;
+        font-size: 16px !important;
+    }
+    p {
+        font-size: 18px !important;
     }
     /* Conversation History Text */
     .stMarkdown {
