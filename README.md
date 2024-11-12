@@ -58,7 +58,6 @@ This will open the application in your default web browser.
 ## Project Structure
 - `ollama_client.py`: Main application file containing the Streamlit interface and functionality.
 - `chat_history.db`: SQLite database file storing the session and conversation data.
-- `requirements.txt`: List of dependencies needed to run the application.
 
 ## Known Issues
 - Ensure Ollama is installed and running correctly; otherwise, model information may not be retrieved successfully.
