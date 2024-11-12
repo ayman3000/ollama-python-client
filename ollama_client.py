@@ -117,8 +117,11 @@ def load_conversation_history(session_id):
 # Initialize the database
 initialize_database()
 
+# Set page layout to wide to utilize empty margins
+st.set_page_config(page_title='ollama-client', layout="wide")
+
 # Streamlit UI
-st.title('Ollama Client ')
+st.title('Ollama Client')
 
 # Sidebar for model selection and session list
 st.sidebar.title('Select Model')
@@ -147,7 +150,8 @@ def add_new_session():
 
         # Clear the new session name input
         st.session_state['new_session_name'] = ""
-new_session_name = st.sidebar.text_input("Enter new session name:", key='session_name', on_change= add_new_session)
+
+new_session_name = st.sidebar.text_input("Enter new session name:", key='session_name', on_change=add_new_session)
 
 # Sidebar list for existing sessions
 st.sidebar.subheader('Session History')
@@ -197,42 +201,15 @@ if current_session_id:
             f"<div style='text-align: left; background-color: #333333; color: white; padding: 10px; border-radius: 10px; margin: 5px 0;font-size:18px'><strong style='color:#00b3b3;font-size:20px'> {model_name}:</strong> <pre style='white-space: pre-wrap; word-wrap: break-word; font-size:16px; background-color: #2e2e2e; color: #d4d4d4; padding: 10px; border-radius: 5px;'>{bot_msg}</pre></div>",
             unsafe_allow_html=True)
 
-# Custom CSS for font sizes
+# Custom CSS to remove the empty margins
 st.markdown("""
     <style>
-    /* Title Font Size */
-    h1 {
-        font-size: 24px !important;
-        margin-top:-60px;
-    }
-    /* Subheader Font Size */
-    h2 {
-        font-size: 18px !important;
-    }
-    /* Sidebar Font Size */
-    .css-18e3th9, .css-1d391kg {
-        font-size: 14px !important;
-    }
-    /* Input box and button text */
-    input, button {
-        font-size: 16px !important;
-    }
-    p {
-        font-size: 18px !important;
-    }
-    /* Conversation History Text */
-    .stMarkdown {
-        font-size: 14px !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
-# Custom CSS to remove the extra top margin
-st.markdown("""
-    <style>
-    /* Remove padding above the title */
-    .css-18e3th9 {
-        padding-top: 0rem;
+     .main .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: 96%;
+        margin: auto;
     }
     </style>
 """, unsafe_allow_html=True)
