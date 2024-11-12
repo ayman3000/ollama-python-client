@@ -184,7 +184,6 @@ if st.button('Send'):
         bot_response = generate_response(selected_model, user_input)
 
         if bot_response:
-            st.text_area(f'{selected_model}:', bot_response, height=200)
             save_conversation(current_session_id, selected_model, user_input, bot_response)
     else:
         st.warning('Please create or select a session.')
