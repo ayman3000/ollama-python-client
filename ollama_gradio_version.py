@@ -130,7 +130,7 @@ with gr.Blocks() as demo:
             create_session_button = gr.Button('Create New Session')
 
             gr.Markdown('## Session History')
-            session_dropdown = gr.Dropdown(label='Choose a session', choices=session_names)
+            session_radio = gr.Radio(label='Session History', choices=session_names)
 
         with gr.Column(scale=3):
             current_session_name_display = gr.Markdown('## Chat - No Session Selected')
@@ -224,7 +224,7 @@ with gr.Blocks() as demo:
         fn=add_new_session,
         inputs=[session_name_input, session_list_state],
         outputs=[
-            session_dropdown,
+            session_radio,  # Updated from session_dropdown
             session_list_state,
             current_session_id,
             current_session_name,
@@ -235,9 +235,9 @@ with gr.Blocks() as demo:
         ]
     )
 
-    session_dropdown.change(
+    session_radio.change(  # Updated from session_dropdown
         fn=select_session,
-        inputs=[session_dropdown, session_list_state],
+        inputs=[session_radio, session_list_state],
         outputs=[
             chat_display,
             current_session_id,
