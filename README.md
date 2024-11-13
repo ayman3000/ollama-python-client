@@ -12,6 +12,7 @@ Ollama Python Client is a Streamlit-based web application that allows users to i
 ## Requirements
 - Python 3.7+
 - Streamlit
+- Gradio
 - Requests
 - Ollama installed and running (accessible via the command line)
 
@@ -31,7 +32,7 @@ Ollama Python Client is a Streamlit-based web application that allows users to i
 
 3. **Install the Required Packages**:
     ```bash
-    pip install streamlit requests sqlite3
+    pip install streamlit gradio requests sqlite3 
     ```
 
 4. **Ensure Ollama is Running**:
