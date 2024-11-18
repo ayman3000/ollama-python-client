@@ -7,6 +7,8 @@ import requests
 import json
 import time
 from datetime import datetime
+import pandas as pd
+import io
 
 # Global variable for database connection
 conn = None
@@ -60,11 +62,11 @@ def get_available_models():
         return []
 
 # Function to generate a response from the selected model and measure response time
-def generate_response(model_name, user_input):
+def generate_response(model_names, user_input):
     url = f'http://localhost:11434/api/generate'
     headers = {'Content-Type': 'application/json'}
     data = {
-        'model': model_name,
+        'model': model_names[0],
         'prompt': user_input,
         'stream': False
     }
@@ -130,6 +132,24 @@ def delete_session(session_id):
     c.execute('DELETE FROM conversations WHERE session_id = ?', (session_id,))
     c.execute('DELETE FROM session WHERE id = ?', (session_id,))
     conn.commit()
+# Function to prepare comparison data and generate CSV
+def prepare_comparison_data(prompt, responses):
+    data = {
+        "Model": [],
+        "Response": [],
+        "Response Time (seconds)": []
+    }
+    for model_name, bot_response, response_time in responses:
+        data["Model"].append(model_name)
+        data["Response"].append(bot_response)
+        data["Response Time (seconds)"].append(f"{response_time:.2f}")
+    return pd.DataFrame(data)
+
+def create_csv_report(df):
+    csv_buffer = io.StringIO()
+    df.to_csv(csv_buffer, index=False)
+    return csv_buffer.getvalue()
+
 
 # Initialize the database
 initialize_database()
@@ -144,7 +164,7 @@ st.title('Ollama Client')
 st.sidebar.title('Select Model')
 models = get_available_models()
 if models:
-    selected_model = st.sidebar.selectbox('Model', models)
+    selected_model = st.sidebar.multiselect('Model', models, default=[models[0]])
 else:
     st.sidebar.warning("No models found. Please check your Ollama installation.")
 
@@ -208,21 +228,45 @@ current_session_name = st.session_state.get('current_session_name', 'Unnamed Ses
 # Main chat interface
 st.subheader(f'Chat - {current_session_name}')
 
-
-
 user_input = st.text_area('You:', '',  key='user_input', placeholder='Write your message')
 
-# send_prompt = False
-# if st.session_state['enable_send'] == True and user_input and user_input.strip()!='' and current_session_id:
+
+# Generate comparison report
+def generate_comparison_report():
+    if user_input and selected_model:
+        responses = []
+        for model_name in selected_model:
+            bot_response, response_time = generate_response([model_name], user_input)
+            responses.append((model_name, bot_response, response_time))
+
+        # Prepare data and create CSV
+        df = prepare_comparison_data(user_input, responses)
+        csv_file = create_csv_report(df)
+
+        # Streamlit button to download the report
+        st.download_button(
+            label="Download Comparison Report",
+            data=csv_file,
+            file_name="model_comparison_report.csv",
+            mime='text/csv'
+        )
+
+# st.button("Generate Comparison Report", on_click=generate_comparison_report)
 
 def send_message():
     if user_input and current_session_id:
-        bot_response, response_time = generate_response(selected_model, user_input)
+        responses = []
+        for model_name in selected_model:
+            bot_response, response_time = generate_response([model_name], user_input)
+            responses.append((model_name, bot_response, response_time))
 
-        if bot_response:
-            save_conversation(current_session_id, selected_model, user_input, bot_response, response_time)
-        else:
-            st.warning('Please create or select a session.')
+        for model_name, bot_response, response_time in responses:
+            if bot_response:
+                save_conversation(current_session_id, model_name, user_input, bot_response, response_time)
+                if 'def ' in bot_response or 'class ' in bot_response:
+                    bot_response = f"```python\n{bot_response}\n```"
+        generate_comparison_report()
+
     else:
         st.toast('Please write your message first.')
 
@@ -251,11 +295,16 @@ if current_session_id:
             unsafe_allow_html=True)
         st.markdown(
             f"<div style='text-align: left; background-color: #444; padding: 10px; border-radius: 10px; margin: 5px 0;font-size:18px'>"
-            f"<strong style='color: #00b3b3;'>{model_name}:</strong>"
+            f"<strong style='color: #00b3b3;'>{model_name} (compared):</strong>"
             f"<span style='float: right; font-size: 14px; color: yellow;'><strong>Response time:</strong> {formatted_response_time} seconds</span> "
             f"<pre style='white-space: pre-wrap; word-wrap: break-word; font-size:16px; background-color: #333; color: white !important; padding: 10px; border-radius: 5px;'>{bot_msg}</pre>"
             f"</div>",
-            unsafe_allow_html=True)
+            unsafe_allow_html=True
+        )
+
+
+
+
 
 # Custom CSS to remove the empty margins
 st.markdown("""
