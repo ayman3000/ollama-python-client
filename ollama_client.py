@@ -5,10 +5,14 @@ import requests
 import json
 from datetime import datetime
 
+# Global variable for database connection
+conn = None
 
 # Initialize database and create tables if they don't exist
 def initialize_database():
-    conn = sqlite3.connect('chat_history.db')
+    global conn
+    if conn is None:
+        conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     # Create the session table
     c.execute('''
@@ -19,6 +23,7 @@ def initialize_database():
         )
     ''')
     # Create the conversations table
+    c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS conversations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,8 +36,6 @@ def initialize_database():
         )
     ''')
     conn.commit()
-    conn.close()
-
 
 # Function to get a list of available models from the command line
 def get_available_models():
@@ -44,7 +47,6 @@ def get_available_models():
     except subprocess.CalledProcessError as e:
         st.error(f"Error retrieving model list: {e}")
         return []
-
 
 # Function to generate a response from the selected model
 def generate_response(model_name, user_input):
@@ -62,46 +64,37 @@ def generate_response(model_name, user_input):
         st.error('Error communicating with the model.')
         return ''
 
-
 # Function to save conversation to the database
 def save_conversation(session_id, model_name, user_input, bot_response):
-    conn = sqlite3.connect('chat_history.db')
+    global conn
     c = conn.cursor()
     c.execute('''
         INSERT INTO conversations (session_id, model_name, user_input, bot_response)
         VALUES (?, ?, ?, ?)
     ''', (session_id, model_name, user_input, bot_response))
     conn.commit()
-    conn.close()
-
 
 # Function to create a new session and return its ID
 def create_new_session(name):
-    conn = sqlite3.connect('chat_history.db')
+    global conn
     c = conn.cursor()
     c.execute('''
         INSERT INTO session (name)
         VALUES (?)
     ''', (name,))
     conn.commit()
-    session_id = c.lastrowid
-    conn.close()
-    return session_id
-
+    return c.lastrowid
 
 # Function to load all sessions
 def load_sessions():
-    conn = sqlite3.connect('chat_history.db')
+    global conn
     c = conn.cursor()
     c.execute('SELECT id, name FROM session ORDER BY timestamp DESC')
-    sessions = c.fetchall()
-    conn.close()
-    return sessions
-
+    return c.fetchall()
 
 # Function to load conversation history by session ID
 def load_conversation_history(session_id):
-    conn = sqlite3.connect('chat_history.db')
+    global conn
     c = conn.cursor()
     c.execute('''
         SELECT user_input, bot_response, model_name
@@ -109,10 +102,15 @@ def load_conversation_history(session_id):
         WHERE session_id = ?
         ORDER BY timestamp DESC
     ''', (session_id,))
-    conversation = c.fetchall()
-    conn.close()
-    return conversation
+    return c.fetchall()
 
+# Function to delete a session by ID
+def delete_session(session_id):
+    global conn
+    c = conn.cursor()
+    c.execute('DELETE FROM conversations WHERE session_id = ?', (session_id,))
+    c.execute('DELETE FROM session WHERE id = ?', (session_id,))
+    conn.commit()
 
 # Initialize the database
 initialize_database()
@@ -149,7 +147,7 @@ def add_new_session():
         st.session_state['session_list'].insert(0, (session_id, name))
 
         # Clear the new session name input
-        st.session_state['new_session_name'] = ""
+        st.session_state['session_name'] = ""
 
 new_session_name = st.sidebar.text_input("Enter new session name:", key='session_name', on_change=add_new_session)
 
@@ -171,6 +169,15 @@ for session_id, session_name in st.session_state['session_list']:
         st.session_state['current_session_name'] = session_name
         break
 
+# Delete session button
+if st.sidebar.button('Delete Selected Session'):
+    if 'current_session_id' in st.session_state and st.session_state['current_session_id'] is not None:
+        delete_session(st.session_state['current_session_id'])
+        st.session_state['session_list'] = load_sessions()
+        st.session_state['current_session_id'] = None
+        st.session_state['current_session_name'] = None
+        st.rerun()
+
 # Retrieve the current session details
 current_session_id = st.session_state.get('current_session_id')
 current_session_name = st.session_state.get('current_session_name', 'Unnamed Session')
@@ -188,16 +195,21 @@ if st.button('Send'):
     else:
         st.warning('Please create or select a session.')
 
+# Search bar for filtering conversation history
+search_query = st.text_input('Search Conversation History', '')
+
 # Display the conversation history for the current session below the chat interface
 if current_session_id:
     st.subheader(f'Conversation History - {current_session_name}')
     full_conversation = load_conversation_history(current_session_id)
-    for user_msg, bot_msg, model_name in full_conversation:
+    filtered_conversation = [conv for conv in full_conversation if search_query.lower() in conv[0].lower() or search_query.lower() in conv[1].lower()]
+    for user_msg, bot_msg, model_name in filtered_conversation:
         st.markdown(
-            f"<div style='text-align: right; background-color: #0056b3; color: white; padding: 10px; border-radius: 10px; margin: 5px 0;font-size:18px'><strong>You:</strong> {user_msg}</div>",
+            f"<div style='text-align: left; background-color: #0056b3; color: white; padding: 10px; border-radius: 10px; margin: 5px 0;font-size:18px'><strong>You:</strong> {user_msg}"
+            f"<span style='float: right; font-size: 14px; color: #e6e6e6;'>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</span></div>",
             unsafe_allow_html=True)
         st.markdown(
-            f"<div style='text-align: left; background-color: #333333; color: white; padding: 10px; border-radius: 10px; margin: 5px 0;font-size:18px'><strong style='color:#00b3b3;font-size:20px'> {model_name}:</strong> <pre style='white-space: pre-wrap; word-wrap: break-word; font-size:16px; background-color: #2e2e2e; color: #d4d4d4; padding: 10px; border-radius: 5px;'>{bot_msg}</pre></div>",
+            f"<div style='text-align: left; background-color: #444;  padding: 10px; border-radius: 10px; margin: 5px 0;font-size:18px'><strong style='color: #00b3b3';'>{model_name}:</strong> <pre style='white-space: pre-wrap; word-wrap: break-word; font-size:16px; background-color: #333333; color: white !important; padding: 10px; border-radius: 5px;'>{bot_msg}</pre></div>",
             unsafe_allow_html=True)
 
 # Custom CSS to remove the empty margins
