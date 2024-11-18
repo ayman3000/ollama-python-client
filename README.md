@@ -1,3 +1,4 @@
+
 # Ollama Python Client
 ![Alt Text](ollama-client-multiselection.png)
 ![Alt Text](ollama-client-history.png)
@@ -10,6 +11,13 @@ Ollama Python Client is a Streamlit-based web application that allows users to i
 1. **List All Installed Models**: The application lists all AI models installed through Ollama, providing easy access to all available models.
 2. **Multiple Models in a Single Conversation**: Users can interact with more than one model in the same conversation, allowing for a flexible and dynamic chatbot experience.
 3. **Persistent Conversations**: Every conversation is saved in a SQLite database, making it easy to view, manage, and retrieve conversation histories at any time.
+4. **Search Conversation History**: Users can search their conversation history by keywords, making it easy to find specific exchanges.
+5. **Timestamps for Each Message**: Each message is timestamped, allowing users to keep track of when interactions occurred.
+6. **Response Time Measurement**: The response time for each model is displayed, providing insight into the efficiency of each model's response.
+7. **Multi-Model Selection and Comparison**: Users can select multiple models simultaneously and compare their responses to the same prompt in a structured way.
+8. **Report Generation**: Users can generate a downloadable comparison report that includes the prompt, responses, and response times of the selected models.
+9. **Search Capability**: Users can search conversation history by keywords to quickly find relevant information.
+10. **Time Duration Display**: Each model's response includes the time it took to generate the response, providing insights into model performance.
 
 ## Requirements
 - Python 3.7+
@@ -34,7 +42,7 @@ Ollama Python Client is a Streamlit-based web application that allows users to i
 
 3. **Install the Required Packages**:
     ```bash
-    pip install streamlit gradio requests sqlite3 
+    pip install -r requirements.txt
     ```
 
 4. **Ensure Ollama is Running**:
@@ -53,10 +61,12 @@ This will open the application in your default web browser.
 2. **Create a New Session**: Provide a name for a new chat session and press Enter to create the session immediately.
 3. **Interact with Multiple Models**: You can input text and choose different models within the same conversation to get varied responses from each one.
 4. **View Conversation History**: You can view and manage past conversations in the "Conversation History" section.
+5. **Search Conversations**: Use the search bar to filter through the conversation history by keywords.
+6. **Generate Comparison Reports**: After interacting with multiple models, you can generate a CSV report comparing their responses and response times to the same prompt.
 
 ## Database Schema
 - **Session Table**: Stores session details (session ID, name, timestamp).
-- **Conversations Table**: Stores conversation details for each session (session ID, model name, user input, bot response, timestamp).
+- **Conversations Table**: Stores conversation details for each session (session ID, model name, user input, bot response, timestamp, response time).
 
 ## Project Structure
 - `ollama_client.py`: Main application file containing the Streamlit interface and functionality.
