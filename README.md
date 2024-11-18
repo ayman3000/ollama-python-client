@@ -1,5 +1,7 @@
 # Ollama Python Client
-![Alt Text](ollama-client-wide.png)
+![Alt Text](ollama-client-multiselection.png)
+![Alt Text](ollama-client-history.png)
+![Alt Text](model-comparison-report.png)
 
 ## Overview
 Ollama Python Client is a Streamlit-based web application that allows users to interact with multiple AI models using a chatbot interface. The application supports multiple sessions, and each session maintains its own conversation history. All conversations are saved in a SQLite database, enabling users to review and manage past interactions.
