@@ -44,18 +44,37 @@ def initialize_database():
     conn.commit()
     conn.close()
 # Function to get a list of available models from the command line
+# def get_available_models():
+#     try:
+#         result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True)
+#         lines = result.stdout.strip().split('\n')
+#         models = [line.split()[0] for line in lines[1:]]  # Skip the header line and get the model name
+#         print(models)
+#         return models
+#     except subprocess.CalledProcessError as e:
+#         st.error(f"Error retrieving model list: {e}")
+#         return []
+#     except FileNotFoundError:
+#         st.error("Ollama is not installed or not found in system PATH.")
+#         return []
+
+
+# Function to get a list of available models from the API
+
 def get_available_models():
     try:
-        result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True)
-        lines = result.stdout.strip().split('\n')
-        models = [line.split()[0] for line in lines[1:]]  # Skip the header line and get the model name
-        print(models)
-        return models
-    except subprocess.CalledProcessError as e:
+        url = 'http://localhost:11434/api/tags'
+        response = requests.get(url)
+        if response.status_code == 200:
+            models_data = response.json().get('models', [])
+            models = [model['name'] for model in models_data]
+            print(models)
+            return models
+        else:
+            st.error(f"Error retrieving model list: {response.status_code}")
+            return []
+    except requests.exceptions.RequestException as e:
         st.error(f"Error retrieving model list: {e}")
-        return []
-    except FileNotFoundError:
-        st.error("Ollama is not installed or not found in system PATH.")
         return []
 
 # Function to generate a response from the selected model and measure response time
@@ -267,9 +286,10 @@ def send_message():
 
         for model_name, bot_response, response_time in responses:
             if bot_response:
-                save_conversation(current_session_id, model_name, user_input, bot_response, response_time)
                 if 'def ' in bot_response or 'class ' in bot_response:
                     bot_response = f"```python\n{bot_response}\n```"
+                save_conversation(current_session_id, model_name, user_input, bot_response, response_time)
+
         generate_comparison_report()
 
     else:
