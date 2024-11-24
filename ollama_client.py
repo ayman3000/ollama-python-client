@@ -11,13 +11,10 @@ import pandas as pd
 import io
 
 # Global variable for database connection
-conn = None
 
 # Initialize database and create tables if they don't exist
 def initialize_database():
-    global conn
-    if conn is None:
-        conn = sqlite3.connect('chat_history.db')
+    conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     # Create the session table
     c.execute('''
@@ -44,15 +41,15 @@ def initialize_database():
     columns = [column[1] for column in c.fetchall()]
     if 'response_time' not in columns:
         c.execute('ALTER TABLE conversations ADD COLUMN response_time REAL')
-        conn.commit()
-    else:
-        conn.commit()
+    conn.commit()
+    conn.close()
 # Function to get a list of available models from the command line
 def get_available_models():
     try:
         result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True)
         lines = result.stdout.strip().split('\n')
         models = [line.split()[0] for line in lines[1:]]  # Skip the header line and get the model name
+        print(models)
         return models
     except subprocess.CalledProcessError as e:
         st.error(f"Error retrieving model list: {e}")
@@ -83,17 +80,18 @@ def generate_response(model_names, user_input):
 
 # Function to save conversation to the database, including response time
 def save_conversation(session_id, model_name, user_input, bot_response, response_time):
-    global conn
+    conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     c.execute('''
         INSERT INTO conversations (session_id, model_name, user_input, bot_response, response_time)
         VALUES (?, ?, ?, ?, ?)
     ''', (session_id, model_name, user_input, bot_response, response_time))
     conn.commit()
+    conn.close()
 
 # Function to create a new session and return its ID
 def create_new_session(name):
-    global conn
+    conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     try:
         c.execute('''
@@ -101,21 +99,25 @@ def create_new_session(name):
             VALUES (?)
         ''', (name,))
         conn.commit()
-        return c.lastrowid
+        session_id = c.lastrowid
     except sqlite3.IntegrityError:
         st.warning("Session name already exists. Please choose a different name.")
-        return None
+        session_id = None
+    conn.close()
+    return session_id
 
 # Function to load all sessions
 def load_sessions():
-    global conn
+    conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     c.execute('SELECT id, name FROM session ORDER BY timestamp DESC')
-    return c.fetchall()
+    results = c.fetchall()
+    conn.close()
+    return results
 
 # Function to load conversation history by session ID, including response time
 def load_conversation_history(session_id):
-    global conn
+    conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     c.execute('''
         SELECT user_input, bot_response, model_name, timestamp, response_time
@@ -123,16 +125,19 @@ def load_conversation_history(session_id):
         WHERE session_id = ?
         ORDER BY timestamp DESC
     ''', (session_id,))
-    return c.fetchall()
+    results = c.fetchall()
+    conn.close()
+    return results
 
 # Function to delete a session by ID
 def delete_session(session_id):
-    global conn
+    conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
     c.execute('DELETE FROM conversations WHERE session_id = ?', (session_id,))
     c.execute('DELETE FROM session WHERE id = ?', (session_id,))
     conn.commit()
-# Function to prepare comparison data and generate CSV
+    conn.close()
+    # Function to prepare comparison data and generate CSV
 def prepare_comparison_data(prompt, responses):
     data = {
         "Model": [],
