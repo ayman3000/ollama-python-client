@@ -197,7 +197,7 @@ def add_new_session():
 
             # Clear the new session name input
             st.session_state['session_name'] = ""
-
+            st.rerun()
         else:
             st.session_state['session_name'] = ""
 
