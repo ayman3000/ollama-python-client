@@ -278,8 +278,9 @@ def generate_comparison_report():
 def send_message():
     if user_input and current_session_id:
         responses = []
+        prompt = st.session_state.get("user_input")
         for model_name in selected_model:
-            bot_response, response_time = ollama_client.generate_response(model_name, user_input)
+            bot_response, response_time = ollama_client.generate_response(model_name, prompt)
             responses.append((model_name, bot_response, response_time))
 
         # Save each response in the database
